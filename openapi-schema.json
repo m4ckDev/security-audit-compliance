@@ -2,7 +2,7 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Security Compliance Auditor API",
-    "version": "2026.1.0"
+    "version": "2026.1.1"
   },
   "servers": [
     {
@@ -15,12 +15,10 @@
       "post": {
         "operationId": "submitComplianceAudit",
         "summary": "Submit compliance audit",
-        "description": "Audit GPT system prompts for security compliance",
+        "description": "Audit user-provided prompt text for common security and compliance risks.",
         "security": [
           {
-            "oauth2": [
-              "audit:write"
-            ]
+            "bearerAuth": []
           }
         ],
         "requestBody": {
@@ -43,6 +41,24 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Missing or invalid API key"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Check API health",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "API is healthy"
           }
         }
       }
@@ -52,53 +68,51 @@
     "schemas": {
       "AuditRequest": {
         "type": "object",
-        "required": [
-          "prompt"
-        ],
+        "required": ["prompt"],
         "properties": {
           "prompt": {
             "type": "string",
-            "description": "System prompt to audit"
+            "description": "Prompt text supplied by the user for security review"
           },
           "context": {
             "type": "string",
-            "description": "Additional context"
+            "description": "Optional context for the audit"
           }
+        }
+      },
+      "Finding": {
+        "type": "object",
+        "properties": {
+          "category": {"type": "string"},
+          "matches": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "severity": {"type": "string"}
         }
       },
       "AuditResponse": {
         "type": "object",
         "properties": {
-          "status": {
-            "type": "string"
-          },
-          "audit_id": {
-            "type": "string"
-          },
-          "compliance": {
-            "type": "string"
-          },
-          "instructions": {
+          "status": {"type": "string"},
+          "audit_id": {"type": "string"},
+          "compliance": {"type": "string"},
+          "findings": {
             "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
+            "items": {"$ref": "#/components/schemas/Finding"}
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "context_received": {"type": "boolean"}
         }
       }
     },
     "securitySchemes": {
-      "oauth2": {
-        "type": "oauth2",
-        "flows": {
-          "authorizationCode": {
-            "authorizationUrl": "https://alpha7-audit.m4ckdev.com/oauth/authorize",
-            "tokenUrl": "https://alpha7-audit.m4ckdev.com/oauth/token",
-            "scopes": {
-              "audit:write": "Submit audit requests"
-            }
-          }
-        }
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }
