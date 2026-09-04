@@ -1,0 +1,58 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Compliance Auditor API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://cactus-primal-hush.ngrok-free.dev"
+    }
+  ],
+  "paths": {
+    "/audit": {
+      "post": {
+        "operationId": "submitSecurityAudit",
+        "security": [
+          {
+            "oauth2": ["audit:write"]
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audit completed"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://cactus-primal-hush.ngrok-free.dev/oauth/token",
+            "scopes": {
+              "audit:write": "Submit audit requests"
+            }
+          }
+        }
+      }
+    }
+  }
+}
