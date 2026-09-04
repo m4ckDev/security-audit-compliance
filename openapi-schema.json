@@ -6,8 +6,8 @@
   },
   "servers": [
     {
-      "url": "https://httpbin.org",
-      "description": "Public API endpoint"
+      "url": "https://alpha7-audit.m4ckdev.com",
+      "description": "Security Compliance Auditor API"
     }
   ],
   "paths": {
@@ -18,7 +18,9 @@
         "description": "Audit GPT system prompts for security compliance",
         "security": [
           {
-            "oauth2": ["audit:write"]
+            "oauth2": [
+              "audit:write"
+            ]
           }
         ],
         "requestBody": {
@@ -50,7 +52,9 @@
     "schemas": {
       "AuditRequest": {
         "type": "object",
-        "required": ["prompt"],
+        "required": [
+          "prompt"
+        ],
         "properties": {
           "prompt": {
             "type": "string",
@@ -87,7 +91,8 @@
       "oauth2": {
         "type": "oauth2",
         "flows": {
-          "clientCredentials": {
+          "authorizationCode": {
+            "authorizationUrl": "https://alpha7-audit.m4ckdev.com/oauth/authorize",
             "tokenUrl": "https://alpha7-audit.m4ckdev.com/oauth/token",
             "scopes": {
               "audit:write": "Submit audit requests"
