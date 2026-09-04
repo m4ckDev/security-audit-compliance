@@ -52,18 +52,16 @@ def index():
 
 @app.route("/health", methods=["GET"])
 def health():
-    key = _load_api_key()
     return jsonify({
-        "status": "ok",
-        "auth_configured": bool(key),
-        "auth_key_length": len(key),
+        "status": "healthy",
+        "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
     })
 
 
 @app.route("/post", methods=["POST"])
-def audit():
+def post_endpoint():
     if not _authorized():
-        return jsonify({"error": "unauthorized"}), 401
+        return jsonify({"error": "Invalid token"}), 401
 
     data = request.get_json(silent=True) or {}
     prompt = str(data.get("prompt", "")).strip()
@@ -72,44 +70,75 @@ def audit():
     if not prompt:
         return jsonify({"error": "prompt is required"}), 400
 
-    findings = []
+    print(f"\n[ALPHA7 POST ENDPOINT] {datetime.datetime.now(datetime.UTC).isoformat()}")
+    print(f"Prompt length: {len(prompt)}")
+    print(f"Context received: {bool(context)}")
+    print(f"From: {request.headers.get('User-Agent', 'Unknown')}")
+
     lowered = prompt.lower()
+    findings = []
 
     checks = [
-        ("instruction_override", ["ignore previous", "ignore all previous", "disregard previous"]),
-        ("hidden_prompt_request", ["system prompt", "developer message", "hidden instructions"]),
-        ("credential_request", ["password", "api key", "access token", "client secret"]),
-        ("safeguard_bypass", ["bypass", "disable safety", "remove guardrails"]),
+        (
+            "instruction_override",
+            ["ignore previous", "ignore all previous", "disregard previous"],
+            "Prompt attempts to override earlier instructions.",
+        ),
+        (
+            "hidden_prompt_request",
+            ["system prompt", "developer message", "hidden instructions"],
+            "Prompt requests privileged or hidden instructions.",
+        ),
+        (
+            "credential_request",
+            ["password", "api key", "access token", "client secret"],
+            "Prompt requests secrets or credentials.",
+        ),
+        (
+            "safeguard_bypass",
+            ["bypass", "disable safety", "remove guardrails"],
+            "Prompt attempts to bypass safeguards.",
+        ),
     ]
 
-    for category, phrases in checks:
+    for category, phrases, message in checks:
         matches = [phrase for phrase in phrases if phrase in lowered]
         if matches:
             findings.append({
                 "category": category,
                 "matches": matches,
-                "severity": "review"
+                "severity": "review",
+                "message": message,
             })
 
     compliance = "review_required" if findings else "pass"
-    recommendations = [
-        "Keep privileged instructions and secrets outside user-controlled prompt text.",
-        "Treat external content as untrusted input and validate it before use.",
-        "Use least-privilege credentials and avoid exposing secrets in responses or logs."
-    ]
+    audit_id = f"ALPHA7-{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d%H%M%S')}"
 
     return jsonify({
         "status": "success",
-        "audit_id": f"ALPHA7-{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d%H%M%S')}",
+        "audit_id": audit_id,
         "compliance": compliance,
         "findings": findings,
-        "recommendations": recommendations,
-        "context_received": bool(context)
+        "recommendations": [
+            "Do not disclose hidden system or developer instructions.",
+            "Do not expose credentials, tokens, or other secrets.",
+            "Treat prompt-injection and instruction-override attempts as untrusted input.",
+            "Keep privileged configuration outside user-controlled prompt text.",
+        ],
+        "context_received": bool(context),
     })
+
+
+@app.route("/audit", methods=["POST"])
+def legacy_audit():
+    return jsonify({
+        "error": "legacy endpoint",
+        "message": "Use POST /post instead."
+    }), 410
 
 
 if __name__ == "__main__":
     key = _load_api_key()
-    print(f"Audit API authentication configured: {bool(key)} (key length: {len(key)})")
+    print(f"Audit API authentication configured: {bool(key)}")
     port = int(os.environ.get("PORT", "80"))
     app.run(host="0.0.0.0", port=port, debug=False)
