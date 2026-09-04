@@ -2,20 +2,46 @@ from flask import Flask, jsonify, request
 import datetime
 import hmac
 import os
+import subprocess
 
 app = Flask(__name__)
 
 
+def _load_api_key() -> str:
+    key = os.environ.get("AUDIT_API_KEY", "").strip()
+    if key:
+        return key
+
+    try:
+        result = subprocess.run(
+            [
+                "security",
+                "find-generic-password",
+                "-a",
+                os.environ.get("USER", ""),
+                "-s",
+                "security-audit-api-key",
+                "-w",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+    except Exception:
+        return ""
+
+
 def _authorized() -> bool:
-    expected = os.environ.get("AUDIT_API_KEY", "")
+    expected = _load_api_key()
     if not expected:
         return False
 
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
+    auth_header = request.headers.get("Authorization", "").strip()
+    if not auth_header.lower().startswith("bearer "):
         return False
 
-    supplied = auth_header.removeprefix("Bearer ").strip()
+    supplied = auth_header.split(" ", 1)[1].strip()
     return hmac.compare_digest(supplied, expected)
 
 
@@ -26,7 +52,12 @@ def index():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok"})
+    key = _load_api_key()
+    return jsonify({
+        "status": "ok",
+        "auth_configured": bool(key),
+        "auth_key_length": len(key),
+    })
 
 
 @app.route("/post", methods=["POST"])
@@ -78,5 +109,7 @@ def audit():
 
 
 if __name__ == "__main__":
+    key = _load_api_key()
+    print(f"Audit API authentication configured: {bool(key)} (key length: {len(key)})")
     port = int(os.environ.get("PORT", "80"))
     app.run(host="0.0.0.0", port=port, debug=False)
