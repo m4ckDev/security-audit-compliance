@@ -1,24 +1,26 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "Compliance Auditor API",
-    "version": "1.0.0"
+    "title": "Security Compliance Auditor",
+    "version": "2026.1.0"
   },
   "servers": [
     {
-      "url": "https://m4ckdev.github.io/security-audit-compliance"
+      "url": "YOUR_CLOUDFLARE_TUNNEL_URL_HERE",
+      "description": "Cloudflare Tunnel endpoint"
     }
   ],
   "paths": {
     "/audit": {
       "post": {
-        "operationId": "submitSecurityAudit",
+        "operationId": "submitComplianceAudit",
         "security": [
           {
             "oauth2": ["audit:write"]
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -46,7 +48,7 @@
         "type": "oauth2",
         "flows": {
           "clientCredentials": {
-            "tokenUrl": "https://cactus-primal-hush.ngrok-free.dev/oauth/token",
+            "tokenUrl": "YOUR_CLOUDFLARE_TUNNEL_URL_HERE/oauth/token",
             "scopes": {
               "audit:write": "Submit audit requests"
             }
